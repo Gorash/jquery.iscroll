@@ -109,7 +109,7 @@ $.fn.iScroll = function (options, callback) {
 					'</div>'+
 					'<span class="iscroll-arrow-first">D</span>'+
 					'<div class="iscroll-overflow">'+
-						'<div class="iscroll-overflow-bar">'+
+						'<div class="iscroll-overflow-bar" style="top: 0;">'+
 							'<button/>'+
 							'<div class="iscroll-overflow-cache"></div>'+
 						'</div>'+
@@ -119,20 +119,16 @@ $.fn.iScroll = function (options, callback) {
 			var scrollOverflowY = scrollY.find('.iscroll-overflow');
 			var scrollBarY = scrollY.find('.iscroll-overflow-bar');
 			var popupY = scrollY.find('.iscroll-popup');
-			var cacheY = scrollY.find('.iscroll-overflow-cache');
+			var scrollcacheY = scrollY.find('.iscroll-overflow-cache');
 			scrollY.prependTo($el);
 			
 			var focus = false;
-			
 			var size = {
 				arrow : {
-					h : scrollY ? scrollY.find('.iscroll-arrow-first').height() : 0,
-				},
-				bar : {
-					h : scrollBarY ? scrollBarY.height() : 0,
+					h : scrollY ? scrollY.find('.iscroll-arrow-first').height() : 0
 				}
 			};
-			
+		
 			var Event = {
 				pos: {
 					y: false,
@@ -150,33 +146,27 @@ $.fn.iScroll = function (options, callback) {
 			};
 			
 			function resizeScroll(e) {
-				$el.css({'overflow': '', 'height': '', 'display': ''});
+				$el.css({'overflow': ''});
 				scrollY.css("height", false);
 				
-				var heights = [
-					$el.height(), 
-					el.clientHeight, 
-					el.offsetHeight];
-				
-				var p = $el.parent();
-				while ( p && p[0] && p[0].clientHeight ) {
-					heights.push(
-						p.height(), 
-						p[0].clientHeight, 
-						p[0].offsetHeight
-					);
-					p = p.parent();
-				}
+				var heights = [$el.height(), el.clientHeight, el.offsetHeight];
 				var height = Math.min.apply(null, heights);
 				
-				$el.css({'overflow': "hidden", 'height': height+"px"});
+				$el.css('overflow', "hidden");
 				scrollY.css("height", height+"px");
 				scrollOverflowY.css("height", (height-2*size.arrow.h)+"px");
 				
-				size.inner = {
-					h : height-size.arrow.h
+				var barHeight = height * (height/el.scrollHeight);
+				if (barHeight < 10) barHeight = 10;
+				scrollBarY.css("height", barHeight+"px");
+				scrollcacheY.css("height", barHeight+"px");
+				
+				size.bar = {
+					h : barHeight
 				};
-			
+				size.inner = {
+					h : height-2*size.arrow.h-scrollBarY.outerHeight()-1
+				};
 				size.box = {
 					h : el.scrollHeight - el.clientHeight
 				};
@@ -263,8 +253,11 @@ $.fn.iScroll = function (options, callback) {
 			
 			var datasSelected = [];
 			function reloadDatas () {
-				datasSelected = $(options.selector);
-				datasSelected.map(function(){this.scrolltop = $(this).position().top + el.scrollTop;});
+				datasSelected = $el.find(options.selector);
+				var boxPositionTop = $el.position().top;
+				datasSelected.each(function(){
+					this.scrolltop = $(this).position().top + el.scrollTop - boxPositionTop;
+				});
 			}
 			function getDatasScroll (ratio) {
 				if (!options.selector) {
@@ -273,7 +266,7 @@ $.fn.iScroll = function (options, callback) {
 				var scrollTop = ratio * size.box.h;
 				
 				var middle = el.clientHeight/2;
-				datasSelected.map(function () {
+				datasSelected.each(function () {
 					var scrollrate = ((this.scrolltop - scrollTop - middle)/middle);
 					this.scrollrate;
 					this.setAttribute('scrollrate', scrollrate );
@@ -291,8 +284,11 @@ $.fn.iScroll = function (options, callback) {
 				var axis = (Event.axis || getAxis(e));
 				if (axis == 'y') {
 					
+					var top = e.clientY - scrollY.position().top - size.bar.h/2 - size.arrow.h;
+					
 					var span = popupY.find('span:first');
-					var scroll = moveBarY(e.clientY - size.bar.h/2, true);
+					var scroll = moveBarY(top, true);
+					
 					var datas = data && data.datas || getDatasScroll(scroll).get();
 					
 					if (hasBindEvent('message')) {
@@ -301,8 +297,8 @@ $.fn.iScroll = function (options, callback) {
 						var message = options.message.apply(span, [{scroll:scroll, datas:datas }]);
 					}
 					
-					if (message.length) {
-						popupY.show().css('top', '+'+e.clientY+'px');
+					if (message && message.length) {
+						popupY.show().css('top', '+'+top+'px');
 						span.html( message );
 					} else {
 						off_popup();
@@ -315,14 +311,14 @@ $.fn.iScroll = function (options, callback) {
 			}
 			function cache() {
 				if (Event.axis) {
-					cacheY.css({
-						top: '-15px',
+					scrollcacheY.css({
+						top: '-25px',
 						left: '-'+scrollY.css('left'),
 						width: el.clientWidth+'px',
-						height: (scrollBarY.height()+15)+'px',
+						height: (scrollBarY.height()+50)+'px',
 					});
 				} else {
-					cacheY.css({top:'', left:'', width: '100%', height: '100%'});
+					scrollcacheY.css({top:'', left:'', width: '100%', height: '100%'});
 				}
 			}
 			
@@ -369,15 +365,15 @@ $.fn.iScroll = function (options, callback) {
 				return event;
 			}
 			function wheel(e, h, cb) {
-				var e = wheelDirection(e);
+				if (!h && !cb) var e = wheelDirection(e);
 				
 				if (!e.deltaY || Event.axis || 
 					(e.deltaY > 0 && el.scrollTop <= 0) || 
 					(e.deltaY < 0 && el.scrollTop >= el.scrollHeight - el.clientHeight)) {
 					return false;
 				}
-
-				var delta = (options.invertscroll ? -1 : 1) * (e.deltaY > 0 ? -1 : 1) * (!isNaN(h) ? h : options.wheel);
+				var delta = (options.invertscroll ? -1 : 1) * (e.deltaY > 0 ? -1 : 1) * (h && !isNaN(h) ? h : options.wheel);
+				
 				gotoScrollY(el.scrollTop + delta, e);
 				callback(cb ? cb : 'scroll', e);
 				
@@ -414,9 +410,8 @@ $.fn.iScroll = function (options, callback) {
 			function drag(e) {
 				e.stopPropagation();
 				if (Event.axis) {
-					e.deltaY = e.pageY - Event.now.y;
+					e.deltaY = Event.now.y - e.pageY;
 					Event.now.y = e.pageY;
-					
 					var ratio = moveBarY(e.pageY - Event.start.y + Event.pos.y);
 					gotoScrollY( ratio * size.box.h , e);
 					cache();
@@ -427,8 +422,10 @@ $.fn.iScroll = function (options, callback) {
 				}
 			}
 			function goTo(e) {
+				if (e.which != 1) return;
 				e.deltaY = e.pageY - scrollBarY.position().top;
-				var ratio = moveBarY(e.clientY - size.bar.h/2);
+				var top = e.clientY - scrollY.position().top - size.bar.h/2 - size.arrow.h;
+				var ratio = moveBarY(top);
 				gotoScrollY( ratio * size.box.h , e);
 				Event.axis = getAxis(e);
 				callback('goto', e);
@@ -461,25 +458,24 @@ $.fn.iScroll = function (options, callback) {
 				}
 				
 				switch (e.keyCode) {
-					case 33: e.originalEvent= {wheelDeltaY:1}; wheel(e, options.pagedown, focus); break;
-					case 34: e.originalEvent= {wheelDeltaY:-1}; wheel(e, options.pagedown, focus); break;
-					case 38: e.originalEvent= {wheelDeltaY:1}; wheel(e, false, focus); break;
-					case 40: e.originalEvent= {wheelDeltaY:-1}; wheel(e, false, focus); break;
+					case 33: e.deltaY= 1; wheel(e, options.pagedown, focus); break;
+					case 34: e.deltaY= -1; wheel(e, options.pagedown, focus); break;
+					case 38: e.deltaY= 1; wheel(e, false, focus); break;
+					case 40: e.deltaY= -1; wheel(e, false, focus); break;
 				}
 			}
 			var activearrow = false;
 			function arrow(e) {
-				if($(e.target).hasClass('iscroll-overflow-top')) {
-					e.originalEvent= {wheelDeltaY:1};
+				if(e.delegateTarget.getAttribute('class') == 'iscroll-arrow-first') {
+					e.deltaY = 1;
 				} else {
-					e.originalEvent= {wheelDeltaY:-1};
+					e.deltaY = -1;
 				}
-				
 				wheel(e, 20);
 			}
 			
 			function setEvents() {
-				cacheY
+				scrollcacheY
 					.bind( 'mousedown', start )
 					.bind( 'mousemove', drag )
 					.bind( 'mouseup', stop );
@@ -517,10 +513,10 @@ $.fn.iScroll = function (options, callback) {
 					window.clearInterval(activearrow);
 					activearrow = window.setInterval(function () {arrow(e)}, 50);
 				});
-				scrollY.find('.iscroll-arrow-first').bind( 'mousedown', function(e){
+				scrollY.find('.iscroll-arrow-first').bind( 'mouseup', function(e){
 					window.clearInterval(activearrow);
 				});
-				scrollY.find('.iscroll-arrow-last').bind( 'mouseup', function(e){
+				scrollY.find('.iscroll-arrow-last').bind( 'mousedown', function(e){
 					e.stopPropagation();
 					window.clearInterval(activearrow);
 					activearrow = window.setInterval(function () {arrow(e)}, 50);
@@ -531,8 +527,7 @@ $.fn.iScroll = function (options, callback) {
 				
 				
 				$el.resize(resize);
-				$el.parents().resize(resize);
-				$(window).resize(resize);
+				$el.parent().resize(resize);
 				
 				scrollY.bind('selectstart', function(e){e.stopPropagation();return false});
 				scrollY.bind('selectstart', '*', function(e){e.stopPropagation();return false});
