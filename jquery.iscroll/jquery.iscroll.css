@@ -23,8 +23,6 @@
 .iscroll {
 	background-color: #eeeeee;
 	position: relative;
-	x-overflow: hidden;
-	y-overflow: visible;
 }
 .iscroll-y {
 	border-left: 1px solid #dddddd;
