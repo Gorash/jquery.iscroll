@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="fr-FR">
+<head>
+    <title>Outils pour les étudiants et leur professeurs</title>
+	<script type="text/javascript" src="jquery-1.7.2.min.js"></script>
+	<script type="text/javascript" src="./jquery.iscroll/jquery.iscroll.js"></script>
+	<link rel="stylesheet" href="./jquery.iscroll/jquery.iscroll.css" media="all"/>
+	<script>
+		$(document).ready(function(){
+			var html = '';
+			var rand = 2000 + Math.random() * 1000;
+			var h1 = 0;
+			var h2 = 0;
+			for (var i=0; i<rand; i++) {
+				if (i%500==0) {
+					h1++;
+					h2 = 0;
+					html += '<h1>titre: '+(h1)+'</h1>';
+				}
+				if (i%50==0) { 
+					h2++;
+					html += '<h2>sous-titre: '+h1+'.'+(h2)+'</h2>';
+				}
+				html += '<p>text<p>';
+			}
+			$(".demo1").html(html);
+			
+			var html = '';
+			var rand = 200 + Math.random() * 200;
+			var h1 = 0;
+			var h2 = 0;
+			for (var i=0; i<rand; i++) {
+				if (i%100==0) {
+					h1++;
+					h2 = 0;
+					html += '<h1>titre: '+(h1)+'</h1>';
+				}
+				if (i%10==0) { 
+					h2++;
+					html += '<h2>sous-titre: '+h1+'.'+(h2)+'</h2>';
+				}
+				html += '<p>text<p>';
+			}
+			$(".demo2").html(html);
+			
+			$(".demo")
+				.iScroll({
+					selector: 'h1,h2'
+				})
+				.bind('iscroll:message', function (event) {
+					if(event.datas[0]) {
+						event.datas.sort(function(a,b){
+							return a.getAttribute('scrollrate') - b.getAttribute('scrollrate')
+						});
+						var list = $(event.datas).filter(function () {
+							return this.getAttribute('scrollrate') < 0;
+						});
+						
+						var h1 = list.filter(function () {
+							return this.nodeName=='H1';
+						}).last();
+						
+						var h2 = list.filter(function () {
+							return this.nodeName=='H2' && h1.attr('scrollrate') > this.getAttribute('scrollrate');
+						}).last();
+						
+						return (h1.size() ? h1.html() : '') + '<br/>' + (h2.size() ? h2.html() : '.');
+					}
+				});
+				
+			$(".demo1")
+				.bind('iscroll:start', function (event) {
+					$(".disp1").html(event.type);
+				})
+				.bind('iscroll:move', function (event) {
+					$(".disp1").html(event.type +' '+ event.deltaY);
+				})
+				.bind('iscroll:stop', function (event) {
+					$(".disp1").html(event.type);
+				});
+			$(".demo2")
+				.bind('iscroll:start', function (event) {
+					$(".disp2").html(event.type);
+				})
+				.bind('iscroll:move', function (event) {
+					$(".disp2").html(event.type +' '+ event.deltaY);
+				})
+				.bind('iscroll:stop', function (event) {
+					$(".disp2").html(event.type);
+				});
+		});
+	</script>
+	<style>
+		.pos {
+			float: left;
+		}
+		.disp {
+			height: 20px;
+			background: #dddddd;
+		}
+		.demo1 {
+			height: 500px;
+			width: 300px;
+		}
+		.demo2 {
+			height: 300px;
+			width: 350px;
+			margin-top: 50px;
+		}
+	</style>
+</head>
+<body>
+	<div class="pos">
+		<div class="disp disp1"></div>
+		<div class="demo demo1"></div>
+	</div>
+	<div class="pos">
+		<div class="disp disp2"></div>
+		<div class="demo demo2"></div>
+	</div>
+</body>
+</html>
