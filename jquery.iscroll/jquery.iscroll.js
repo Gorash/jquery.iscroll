@@ -1,7 +1,9 @@
 /*
-Christophe Matthieu
-tof.matthieu@gmail.com
-If you use this software, please send me an email.
+* jquery.iscroll.js
+* MIT licensed
+* Christophe Matthieu
+* tof.matthieu@gmail.com
+* If you use this software, please send me an email.
 */
 (function(window,$) {
 /* intelligent scrolling
