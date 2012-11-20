@@ -8,7 +8,7 @@
 	<script>
 		$(document).ready(function(){
 			var html = '';
-			var rand = 2000 + Math.random() * 1000;
+			var rand = 20000 + Math.random();
 			var h1 = 0;
 			var h2 = 0;
 			for (var i=0; i<rand; i++) {
@@ -17,7 +17,7 @@
 					h2 = 0;
 					html += '<h1>titre: '+(h1)+'</h1>';
 				}
-				if (i%50==0) { 
+				if (i%100==0) { 
 					h2++;
 					html += '<h2>sous-titre: '+h1+'.'+(h2)+'</h2>';
 				}
@@ -26,7 +26,7 @@
 			$(".demo1").html(html);
 			
 			var html = '';
-			var rand = 200 + Math.random() * 200;
+			var rand = 25 + Math.random() * 100;
 			var h1 = 0;
 			var h2 = 0;
 			for (var i=0; i<rand; i++) {
@@ -43,28 +43,35 @@
 			}
 			$(".demo2").html(html);
 			
+			
+			
+			
 			$(".demo")
 				.iScroll({
 					selector: 'h1,h2'
 				})
 				.bind('iscroll:message', function (event) {
+					
 					if(event.datas[0]) {
-						event.datas.sort(function(a,b){
-							return a.getAttribute('scrollrate') - b.getAttribute('scrollrate')
-						});
-						var list = $(event.datas).filter(function () {
-							return this.getAttribute('scrollrate') < 0;
-						});
+						var listH1 = [], 
+							listH2 = [], 
+							percent = event.scrollpercent + event.viewpercent;
 						
-						var h1 = list.filter(function () {
-							return this.nodeName=='H1';
-						}).last();
+						for (var k=0; k < event.datas.length; k++) {
+							if (event.datas[k].scrollpercent <= percent) {
+								if (event.datas[k].DOM.nodeName=='H1')
+									listH1.push(event.datas[k]);
+								else 
+									listH2.push(event.datas[k]);
+							}
+						}
+						var h1 = listH1[listH1.length-1];
+						var h2 = listH2[listH2.length-1];
+						if (h2.scrollpercent < h2.scrollpercent) {
+							h2 = false;
+						}
 						
-						var h2 = list.filter(function () {
-							return this.nodeName=='H2' && h1.attr('scrollrate') > this.getAttribute('scrollrate');
-						}).last();
-						
-						return (h1.size() ? h1.html() : '') + '<br/>' + (h2.size() ? h2.html() : '.');
+						return (h1 ? h1.DOM.innerHTML : '') + '<br/>' + (h2 ? h2.DOM.innerHTML : '.');
 					}
 				});
 				
@@ -100,11 +107,12 @@
 		}
 		.demo1 {
 			height: 500px;
-			width: 300px;
+			width: 500px;
+			margin-right:30px;
 		}
 		.demo2 {
 			height: 300px;
-			width: 350px;
+			width: 550px;
 			margin-top: 50px;
 		}
 	</style>

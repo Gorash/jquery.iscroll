@@ -43,8 +43,7 @@
 *				actually only 'y' axe of scrolling
 * . . . . . datas
 *				{ARRAY}
-*				list of item loaded by selector with a scrollrate attribute
-*				(center clientHeight = 0, border top client box = -1, border bottom client box = 1)
+*				list of item loaded by selector with a scrolltoppercent js attribute
 * .	. . . . srcEvent
 *				{OBJECT}
 *				return the source event object (mousedown, click, resize...)
@@ -100,32 +99,35 @@ $.fn.iScroll = function (options, callback) {
 			}
 			
 			var scrollY = $(
-				'<div class="iscroll iscroll-y" data-axis="y">'+
-					'<div class="iscroll-popup">'+
-						'<div class="iscroll-popup-box">'+
-							'<div class="iscroll-popup-arrow">x</div>'+
-							'<span>.</span>'+
+				'<div class="iscroll-y" data-axis="y">'+
+					'<div class="iscroll-box">'+
+						'<div class="iscroll-popup">'+
+							'<div class="iscroll-popup-box">'+
+								'<div class="iscroll-popup-arrow">x</div>'+
+								'<span>.</span>'+
+							'</div>'+
 						'</div>'+
-					'</div>'+
-					'<span class="iscroll-arrow-first">D</span>'+
-					'<div class="iscroll-overflow">'+
-						'<div class="iscroll-overflow-bar" style="top: 0;">'+
-							'<button/>'+
-							'<div class="iscroll-overflow-cache"></div>'+
+						'<span class="iscroll-arrow-first">D</span>'+
+						'<div class="iscroll-overflow">'+
+							'<div class="iscroll-overflow-bar" style="top: 0;">'+
+								'<button/>'+
+								'<div class="iscroll-overflow-cache"></div>'+
+							'</div>'+
 						'</div>'+
+						'<span class="iscroll-arrow-last">A</span>'+
 					'</div>'+
-					'<span class="iscroll-arrow-last">A</span>'+
 				'</div>');
-			var scrollOverflowY = scrollY.find('.iscroll-overflow');
-			var scrollBarY = scrollY.find('.iscroll-overflow-bar');
-			var popupY = scrollY.find('.iscroll-popup');
-			var scrollcacheY = scrollY.find('.iscroll-overflow-cache');
+			var scrollBox = scrollY.find('.iscroll-box');
+			var scrollOverflowY = scrollBox.find('.iscroll-overflow');
+			var scrollBarY = scrollBox.find('.iscroll-overflow-bar');
+			var popupY = scrollBox.find('.iscroll-popup');
+			var scrollcacheY = scrollBox.find('.iscroll-overflow-cache');
 			scrollY.prependTo($el);
 			
 			var focus = false;
 			var size = {
 				arrow : {
-					h : scrollY ? scrollY.find('.iscroll-arrow-first').height() : 0
+					h : scrollBox ? scrollBox.find('.iscroll-arrow-first').height() : 0
 				}
 			};
 		
@@ -147,13 +149,13 @@ $.fn.iScroll = function (options, callback) {
 			
 			function resizeScroll(e) {
 				$el.css({'overflow': ''});
-				scrollY.css("height", false);
-				
+				scrollBox.css("height", false);
+
 				var heights = [$el.height(), el.clientHeight, el.offsetHeight];
 				var height = Math.min.apply(null, heights);
 				
 				$el.css('overflow', "hidden");
-				scrollY.css("height", height+"px");
+				scrollBox.css("height", height+"px");
 				scrollOverflowY.css("height", (height-2*size.arrow.h)+"px");
 				
 				var barHeight = height * (height/el.scrollHeight);
@@ -211,10 +213,10 @@ $.fn.iScroll = function (options, callback) {
 				}
 				
 				var data = {
-					scroll: el.scrollTop/size.box.h,
-					view: el.clientHeight/size.box.h, 
+					scrollpercent: el.scrollTop/size.box.h,
+					viewpercent: el.clientHeight/size.box.h, 
 					axis: Event.axis,
-					datas: data || getDatasScroll(el.scrollTop/size.box.h).get(),
+					datas: data || datasSelected,
 					srcEvent: event
 				};
 				
@@ -253,54 +255,52 @@ $.fn.iScroll = function (options, callback) {
 			
 			var datasSelected = [];
 			function reloadDatas () {
-				datasSelected = $el.find(options.selector);
+				datasSelected = [];
 				var boxPositionTop = $el.position().top;
-				datasSelected.each(function(){
-					this.scrolltop = $(this).position().top + el.scrollTop - boxPositionTop;
+				$el.find(options.selector).each(function(){
+					datasSelected.push({'DOM':this, 'scrollpercent': ($(this).position().top - boxPositionTop) / el.scrollHeight });
 				});
-			}
-			function getDatasScroll (ratio) {
-				if (!options.selector) {
-					return false;
-				}
-				var scrollTop = ratio * size.box.h;
-				
-				var middle = el.clientHeight/2;
-				datasSelected.each(function () {
-					var scrollrate = ((this.scrolltop - scrollTop - middle)/middle);
-					this.scrollrate;
-					this.setAttribute('scrollrate', scrollrate );
+				datasSelected.sort(function(a,b){
+					return a.scrollpercent - b.scrollpercent
 				});
-				
 				return datasSelected;
 			}
 			
 			function on_popup(e, data) {
 				// get if the are a bind event for message or a callback message
-				if (!hasBindEvent('message') && !options.message) {
+				if (!hasBindEvent('message') && !options.message && !tpopup) {
 					return false;
 				}
 				
 				var axis = (Event.axis || getAxis(e));
 				if (axis == 'y') {
-					
-					var top = e.clientY - scrollY.position().top - size.bar.h/2 - size.arrow.h;
+
+					var top = e.clientY - scrollBox.position().top - scrollY.position().top - size.arrow.h;
 					
 					var span = popupY.find('span:first');
-					var scroll = moveBarY(top, true);
+					var scroll = top / (scrollBox.height() - size.arrow.h*2);
 					
-					var datas = data && data.datas || getDatasScroll(scroll).get();
+					var datas = data && data.datas || datasSelected;
+					
+					var data = {
+						scrollpercent: scroll,
+						viewpercent: el.clientHeight/size.box.h, 
+						axis: Event.axis,
+						datas: datas,
+						srcEvent: e
+					};
 					
 					if (hasBindEvent('message')) {
-						var message = trigger('message', {scroll:scroll, datas:datas });
+						var message = trigger('message', data);
 					} else if (options.message) {
-						var message = options.message.apply(span, [{scroll:scroll, datas:datas }]);
+						var message = options.message.apply(span, [data]);
 					}
 					
 					if (message && message.length) {
 						popupY.show().css('top', '+'+top+'px');
 						span.html( message );
 					} else {
+						console.log("off");
 						off_popup();
 					}
 				}
@@ -313,7 +313,7 @@ $.fn.iScroll = function (options, callback) {
 				if (Event.axis) {
 					scrollcacheY.css({
 						top: '-25px',
-						left: '-'+scrollY.css('left'),
+						left: '-'+scrollBox.css('left'),
 						width: el.clientWidth+'px',
 						height: (scrollBarY.height()+50)+'px',
 					});
@@ -322,20 +322,20 @@ $.fn.iScroll = function (options, callback) {
 				}
 			}
 			
-			function gotoScrollY(y, e) {
+			function gotoscrollBox(y, e) {
 				el.scrollTop = parseInt(y) < size.box.h ? y : size.box.h;
 				resetBarPosition();
 			}
 			function resetBarPosition() {
-				scrollY.css('top', el.scrollTop+'px');
+				scrollBox.css('top', el.scrollTop+'px');
 			}
-			function moveBarY(top, stay) {
+			function moveBarY(top) {
 				if (top < 0){
 					top = 0;
 				} else if (top > size.inner.h){
 					top = size.inner.h;
 				}
-				if(!stay) scrollBarY.css('top', top+'px');
+				scrollBarY.css('top', top+'px');
 				return top/size.inner.h;
 			}
 			function resetScrollPosition() {
@@ -374,7 +374,7 @@ $.fn.iScroll = function (options, callback) {
 				}
 				var delta = (options.invertscroll ? -1 : 1) * (e.deltaY > 0 ? -1 : 1) * (h && !isNaN(h) ? h : options.wheel);
 				
-				gotoScrollY(el.scrollTop + delta, e);
+				gotoscrollBox(el.scrollTop + delta, e);
 				callback(cb ? cb : 'scroll', e);
 				
 				Event.pos.y = 0;
@@ -413,7 +413,7 @@ $.fn.iScroll = function (options, callback) {
 					e.deltaY = Event.now.y - e.pageY;
 					Event.now.y = e.pageY;
 					var ratio = moveBarY(e.pageY - Event.start.y + Event.pos.y);
-					gotoScrollY( ratio * size.box.h , e);
+					gotoscrollBox( ratio * size.box.h , e);
 					cache();
 					var data = callback('move', e);
 					on_popup(e, data);
@@ -424,16 +424,19 @@ $.fn.iScroll = function (options, callback) {
 			function goTo(e) {
 				if (e.which != 1) return;
 				e.deltaY = e.pageY - scrollBarY.position().top;
-				var top = e.clientY - scrollY.position().top - size.bar.h/2 - size.arrow.h;
+				var top = e.offsetY - size.bar.h/2;
+				
 				var ratio = moveBarY(top);
-				gotoScrollY( ratio * size.box.h , e);
+				gotoscrollBox( ratio * size.box.h , e);
 				Event.axis = getAxis(e);
 				callback('goto', e);
 				Event.axis = false;
 			}
 			function resize(e) {
-				init();
-				callback('resize', e);
+				if ($el.height() != scrollBox.height()) {
+					init();
+					callback('resize', e);
+				}
 			}
 			
 			function key(e) {
@@ -508,32 +511,35 @@ $.fn.iScroll = function (options, callback) {
 				});
 				
 				
-				scrollY.find('.iscroll-arrow-first').bind( 'mousedown', function(e){
+				scrollBox.find('.iscroll-arrow-first').bind( 'mousedown', function(e){
 					e.stopPropagation();
 					window.clearInterval(activearrow);
 					activearrow = window.setInterval(function () {arrow(e)}, 50);
 				});
-				scrollY.find('.iscroll-arrow-first').bind( 'mouseup', function(e){
+				scrollBox.find('.iscroll-arrow-first').bind( 'mouseup', function(e){
 					window.clearInterval(activearrow);
 				});
-				scrollY.find('.iscroll-arrow-last').bind( 'mousedown', function(e){
+				scrollBox.find('.iscroll-arrow-last').bind( 'mousedown', function(e){
 					e.stopPropagation();
 					window.clearInterval(activearrow);
 					activearrow = window.setInterval(function () {arrow(e)}, 50);
 				});
-				scrollY.find('.iscroll-arrow-last').bind( 'mouseup', function(e){
+				scrollBox.find('.iscroll-arrow-last').bind( 'mouseup', function(e){
 					window.clearInterval(activearrow);
 				});
 				
 				
-				$el.resize(resize);
 				$el.parent().resize(resize);
+				$el.bind('resize DOMSubtreeModified', resize);
+				window.setInterval(resize, 250);
+				$el.bind('iscroll:reload', init);
 				
-				scrollY.bind('selectstart', function(e){e.stopPropagation();return false});
-				scrollY.bind('selectstart', '*', function(e){e.stopPropagation();return false});
+				scrollBox.bind('selectstart', function(e){e.stopPropagation();return false});
+				scrollBox.bind('selectstart', '*', function(e){e.stopPropagation();return false});
 			}
 			function init(e) {
 				resizeScroll(e);
+				reloadDatas();
 				resetBarPosition(e);
 				resetScrollPosition(e);
 			}
@@ -544,7 +550,7 @@ $.fn.iScroll = function (options, callback) {
 		})(this, options);
 	});
 
-	return $(this);
+	return this;
 };
 
 })(window,jQuery);

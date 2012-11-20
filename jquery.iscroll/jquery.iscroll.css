@@ -20,22 +20,28 @@
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
 }
-.iscroll {
+.iscroll-y {
 	background-color: #eeeeee;
 	position: relative;
-}
-.iscroll-y {
-	border-left: 1px solid #dddddd;
 	float: right;
+	height: 0;
+	width: 0;
+	z-index: 10;
 }
-.iscroll-y .iscroll-overflow {
+.iscroll-box {
+	border-left: 1px solid #dddddd;
+	position: absolute;
+	z-index: 11;
+	right: 0;
+}
+.iscroll-box .iscroll-overflow {
 	background-color: #eeeeee;
 	position: relative;
 	width: 16px;
 	top: 15px;
 }
-.iscroll-y .iscroll-arrow-first, 
-.iscroll-y .iscroll-arrow-last {
+.iscroll-box .iscroll-arrow-first, 
+.iscroll-box .iscroll-arrow-last {
 	font-family: "fontello_ft" !important;
 	font-size: 10px !important;
 	color: #999999;
@@ -47,33 +53,32 @@
 	z-index: 4;
 	cursor: pointer;
 }
-.iscroll-y .iscroll-arrow-first {
+.iscroll-box .iscroll-arrow-first {
 	top: 0px;
 	border-bottom: 1px solid #dddddd;
 }
-.iscroll-y .iscroll-arrow-last {
+.iscroll-box .iscroll-arrow-last {
 	bottom: 0px;
 	border-top: 1px solid #dddddd;
 }
-.iscroll-y .iscroll-overflow-bar {
+.iscroll-box .iscroll-overflow-bar {
 	width: 16px;
 	height: 50px;
 	position: relative;
 	z-index: 3;
 	cursor: pointer;
 }
-.iscroll-y .iscroll-overflow-bar button {
-	border-top: 2px solid #dddddd;
-	border-left: 2px solid #dddddd;
-	border-bottom: 2px solid #666666;
-	border-right: 2px solid #666666;
+.iscroll-box .iscroll-overflow-bar button {
+	border: 1px solid #666666;
+	border: 1px solid rgba(0, 0, 0, 0.4);
 	background-color: #cccccc;
 	width: 14px;
 	height: 100%;
 	position: absolute;
 	z-index: 4;
+	padding: 0;
 }
-.iscroll-y .iscroll-overflow-bar .iscroll-overflow-cache {
+.iscroll-box .iscroll-overflow-bar .iscroll-overflow-cache {
 	width: 100%;
 	height: 100%;
 	background-color: transparent;
@@ -82,14 +87,14 @@
 	right: +0px;
 	z-index: 5;
 }
-.iscroll-y .iscroll-popup {
+.iscroll-box .iscroll-popup {
 	position: absolute;
 	display: none;
 	width: 1px;
 	height: 1px;
 	z-index: 3;
 }
-.iscroll-y .iscroll-popup-box {
+.iscroll-box .iscroll-popup-box {
 	background: #ffffff;
 	padding: 5px 10px;
 	border: 1px #333333 solid;
@@ -106,7 +111,7 @@
 	white-space: nowrap;
 	min-width: 100px;
 }
-.iscroll-y .iscroll-popup .iscroll-popup-arrow {
+.iscroll-box .iscroll-popup .iscroll-popup-arrow {
 	font-family: "fontello_ft" !important;
 	margin-top: -0.28em;
 	font-weight: 300 !important;
