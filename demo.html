@@ -8,7 +8,7 @@
 	<script>
 		$(document).ready(function(){
 			var html = '';
-			var rand = 20000 + Math.random();
+			var rand = 10000 + Math.random();
 			var h1 = 0;
 			var h2 = 0;
 			for (var i=0; i<rand; i++) {
@@ -53,28 +53,39 @@
 				.bind('iscroll:message', function (event) {
 					
 					if(event.datas[0]) {
-						var listH1 = [], 
-							listH2 = [], 
-							percent = event.scrollpercent + event.viewpercent;
-						
-						for (var k=0; k < event.datas.length; k++) {
-							if (event.datas[k].scrollpercent <= percent) {
-								if (event.datas[k].DOM.nodeName=='H1')
-									listH1.push(event.datas[k]);
-								else 
-									listH2.push(event.datas[k]);
-							}
-						}
-						var h1 = listH1[listH1.length-1];
-						var h2 = listH2[listH2.length-1];
-						if (h2.scrollpercent < h2.scrollpercent) {
+						var h1 = false,
 							h2 = false;
+							percent = event.scrollpercent + event.viewpercent,
+							k = Math.floor(event.datas.length/2), 
+							dk = Math.floor(k/2);
+						
+						while(k > 0 && dk > 0) {
+							if (event.datas[k].scrollpercent <= percent) {
+								k += dk;
+							} else if (event.datas[k].scrollpercent > percent) {
+								k -= dk;
+							}
+							if (dk <= 1) {
+								break;
+							}
+							dk = Math.ceil(dk/2);
+						}
+						
+						for (k--; k >= 0 && !(h1 && h2); k--) {
+							if (event.datas[k].DOM.nodeName=='H1')
+								h1 = event.datas[k];
+							else 
+								h2 = event.datas[k];
 						}
 						
 						return (h1 ? h1.DOM.innerHTML : '') + '<br/>' + (h2 ? h2.DOM.innerHTML : '.');
 					}
 				});
-				
+			
+			$(".demo1").append('<span class="truc"></span>');
+			$(".demo1 .truc").css('display', 'block');
+			$(".demo1").append('<span class="truc2"></span>');
+			
 			$(".demo1")
 				.bind('iscroll:start', function (event) {
 					$(".disp1").html(event.type);

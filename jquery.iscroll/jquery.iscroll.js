@@ -99,7 +99,7 @@ $.fn.iScroll = function (options, callback) {
 			}
 			
 			var scrollY = $(
-				'<div class="iscroll-y" data-axis="y">'+
+				'<div class="iscroll iscroll-y" data-axis="y">'+
 					'<div class="iscroll-box">'+
 						'<div class="iscroll-popup">'+
 							'<div class="iscroll-popup-box">'+
@@ -205,9 +205,6 @@ $.fn.iScroll = function (options, callback) {
 					makeE[2] = true;
 				}
 				
-				if(makeE[0]) {
-					reloadDatas();
-				}
 				if(makeE[1]) {
 					makeE[4] = true;
 				}
@@ -436,6 +433,8 @@ $.fn.iScroll = function (options, callback) {
 				if ($el.height() != scrollBox.height()) {
 					init();
 					callback('resize', e);
+				} else if(e && e.type == 'DOMNodeInserted' && !$(e.srcElement).parents('.iscroll').size()) {
+					reloadDatas();
 				}
 			}
 			
@@ -530,7 +529,7 @@ $.fn.iScroll = function (options, callback) {
 				
 				
 				$el.parent().resize(resize);
-				$el.bind('resize DOMSubtreeModified', resize);
+				$el.bind('resize DOMNodeInserted', resize);
 				window.setInterval(resize, 250);
 				$el.bind('iscroll:reload', init);
 				
