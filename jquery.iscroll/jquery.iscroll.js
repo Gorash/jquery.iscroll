@@ -133,11 +133,7 @@ $.fn.iScroll = function (options, callback) {
 			scrollY.prependTo($el);
 			
 			var focus = false;
-			var size = {
-				arrow : {
-					h : scrollBox ? scrollBox.find('.iscroll-arrow-first').height() : 0
-				}
-			};
+			var size = {};
 		
 			var Event = {
 				pos: {
@@ -156,30 +152,27 @@ $.fn.iScroll = function (options, callback) {
 			};
 			
 			function resizeScroll(e) {
-				$el.css({'overflow': ''});
+				$el.css({'overflow': 'auto'});
 				scrollBox.css("height", false);
 
 				var heights = [$el.height(), el.clientHeight, el.offsetHeight];
 				var height = Math.min.apply(null, heights);
 				
+				size.scrollHeight = el.scrollHeight+0;
+				size.arrowHeight = scrollBox ? scrollBox.find('.iscroll-arrow-first').height() : 0
+				
 				$el.css('overflow', "hidden");
 				scrollBox.css("height", height+"px");
-				scrollOverflowY.css("height", (height-2*size.arrow.h)+"px");
+				scrollOverflowY.css("height", (height-2*size.arrowHeight)+"px");
 				
-				var barHeight = height * (height/el.scrollHeight);
+				var barHeight = height * (height/size.scrollHeight);
 				if (barHeight < 10) barHeight = 10;
 				scrollBarY.css("height", barHeight+"px");
 				scrollcacheY.css("height", barHeight+"px");
 				
-				size.bar = {
-					h : barHeight
-				};
-				size.inner = {
-					h : height-2*size.arrow.h-scrollBarY.outerHeight()-1
-				};
-				size.box = {
-					h : el.scrollHeight - el.clientHeight
-				};
+				size.barHeight = barHeight;
+				size.overflowRestHeight = (height-2*size.arrowHeight) - scrollBarY.outerHeight();
+				size.scrollMaxY = size.scrollHeight - el.clientHeight;
 				
 				if (!options.pagedown) {
 					options.pagedown = height-20;
@@ -218,8 +211,8 @@ $.fn.iScroll = function (options, callback) {
 				}
 				
 				var data = {
-					scrollpercent: el.scrollTop/size.box.h,
-					viewpercent: el.clientHeight/size.box.h, 
+					scrollpercent: el.scrollTop/size.scrollMaxY,
+					viewpercent: el.clientHeight/size.scrollMaxY, 
 					axis: Event.axis,
 					datas: data || datasSelected,
 					srcEvent: event,
@@ -258,7 +251,7 @@ $.fn.iScroll = function (options, callback) {
 				datasSelected = [];
 				var boxPositionTop = $el.position().top;
 				$el.find(options.selector).each(function(){
-					datasSelected.push({'DOM':this, 'scrollpercent': ($(this).position().top - boxPositionTop) / el.scrollHeight });
+					datasSelected.push({'DOM':this, 'scrollpercent': ($(this).position().top - boxPositionTop) / size.scrollHeight });
 				});
 				datasSelected.sort(function(a,b){
 					return a.scrollpercent - b.scrollpercent
@@ -275,9 +268,9 @@ $.fn.iScroll = function (options, callback) {
 				var axis = (Event.axis || getAxis(e));
 				if (axis == 'y') {
 
-					var top = e.clientY - scrollBox.position().top - scrollY.position().top - size.arrow.h;
+					var top = e.clientY - scrollBox.position().top - scrollY.position().top - size.arrowHeight;
 					
-					var scroll = top / (scrollBox.height() - size.arrow.h*2);
+					var scroll = top / (scrollBox.height() - size.arrowHeight*2);
 					
 					var datas = data && data.datas || datasSelected;
 					
@@ -285,7 +278,7 @@ $.fn.iScroll = function (options, callback) {
 					
 					var data = {
 						scrollpercent: scroll,
-						viewpercent: el.clientHeight/size.box.h, 
+						viewpercent: el.clientHeight/size.scrollMaxY, 
 						axis: Event.axis,
 						datas: datas,
 						srcEvent: e,
@@ -320,7 +313,7 @@ $.fn.iScroll = function (options, callback) {
 			}
 			
 			function gotoscrollBox(y, e) {
-				el.scrollTop = parseInt(y) < size.box.h ? y : size.box.h;
+				el.scrollTop = parseInt(y) < size.scrollMaxY ? y : size.scrollMaxY;
 				resetBarPosition();
 			}
 			function resetBarPosition() {
@@ -329,14 +322,14 @@ $.fn.iScroll = function (options, callback) {
 			function moveBarY(top) {
 				if (top < 0){
 					top = 0;
-				} else if (top > size.inner.h){
-					top = size.inner.h;
+				} else if (top > size.overflowRestHeight){
+					top = size.overflowRestHeight;
 				}
 				scrollBarY.css('top', top+'px');
-				return top/size.inner.h;
+				return top/size.overflowRestHeight;
 			}
 			function resetScrollPosition() {
-				moveBarY( (el.scrollTop/size.box.h) * size.inner.h );
+				moveBarY( (el.scrollTop/size.scrollMaxY) * size.overflowRestHeight );
 			}
 			
 			
@@ -366,7 +359,7 @@ $.fn.iScroll = function (options, callback) {
 				
 				if (!e.deltaY || Event.axis || 
 					(e.deltaY > 0 && el.scrollTop <= 0) || 
-					(e.deltaY < 0 && el.scrollTop >= el.scrollHeight - el.clientHeight)) {
+					(e.deltaY < 0 && el.scrollTop >= size.scrollHeight - el.clientHeight)) {
 					return false;
 				}
 				var delta = (options.invertscroll ? -1 : 1) * (e.deltaY > 0 ? -1 : 1) * (h && !isNaN(h) ? h : options.wheel);
@@ -410,7 +403,7 @@ $.fn.iScroll = function (options, callback) {
 					e.deltaY = Event.now.y - e.pageY;
 					Event.now.y = e.pageY;
 					var ratio = moveBarY(e.pageY - Event.start.y + Event.pos.y);
-					gotoscrollBox( ratio * size.box.h , e);
+					gotoscrollBox( ratio * size.scrollMaxY , e);
 					cache();
 					var data = callback('move', e);
 					on_popup(e, data);
@@ -421,11 +414,11 @@ $.fn.iScroll = function (options, callback) {
 			function goTo(e) {
 				if (e.which != 1) return;
 				e.deltaY = e.pageY - scrollBarY.position().top;
-				var top = (e.offsetY || e.originalEvent.layerY || window.event.offsetY || window.event.layerY) - size.bar.h/2;
+				var top = (e.offsetY || e.originalEvent.layerY || window.event.offsetY || window.event.layerY) - size.barHeight/2;
 				
 				var ratio = moveBarY(top);
 				
-				gotoscrollBox( ratio * size.box.h , e);
+				gotoscrollBox( ratio * size.scrollMaxY , e);
 				Event.axis = getAxis(e);
 				callback('goto', e);
 				Event.axis = false;
@@ -437,7 +430,6 @@ $.fn.iScroll = function (options, callback) {
 					resetScrollPosition(e);
 					callback('resize', e);
 				} else if(e && e.type == 'DOMNodeInserted' && !$(e.relatedNode).parents('.iscroll').size()) {
-					console.log(e);
 					reloadDatas(e);
 				}
 			}
@@ -449,7 +441,7 @@ $.fn.iScroll = function (options, callback) {
 				
 				if ( Event.axis || 
 					((e.keyCode == 33 || e.keyCode == 38 ) && el.scrollTop <= 0) || 
-					((e.keyCode == 34 || e.keyCode == 40 ) && el.scrollTop >= el.scrollHeight - el.clientHeight)) {
+					((e.keyCode == 34 || e.keyCode == 40 ) && el.scrollTop >= size.scrollHeight - el.clientHeight)) {
 					if (focus !== true) {
 						callback('stop', e);
 					}
@@ -541,8 +533,8 @@ $.fn.iScroll = function (options, callback) {
 				scrollBox.bind('selectstart', '*', function(e){e.stopPropagation();return false});
 			}
 			function init(e) {
-				reloadDatas(e);
 				resizeScroll(e);
+				reloadDatas(e);
 				resetBarPosition(e);
 				resetScrollPosition(e);
 			}
