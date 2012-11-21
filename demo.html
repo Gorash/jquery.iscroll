@@ -96,25 +96,13 @@
 			$(".demo1").append('<span class="truc2"></span>');
 			
 			$(".demo1")
-				.bind('iscroll:start', function (event) {
-					$(".disp1").html(event.type);
-				})
-				.bind('iscroll:move', function (event) {
+				.bind('iscroll:start iscroll:move iscroll:stop', function (event) {
 					$(".disp1").html(event.type +' '+ event.deltaY);
-				})
-				.bind('iscroll:stop', function (event) {
-					$(".disp1").html(event.type);
 				});
 			$(".demo2")
-				.bind('iscroll:start', function (event) {
-					$(".disp2").html(event.type);
-				})
-				.bind('iscroll:move', function (event) {
+				.bind('iscroll:start iscroll:move iscroll:stop', function (event) {
 					$(".disp2").html(event.type +' '+ event.deltaY);
 				})
-				.bind('iscroll:stop', function (event) {
-					$(".disp2").html(event.type);
-				});
 		});
 	</script>
 	<style>

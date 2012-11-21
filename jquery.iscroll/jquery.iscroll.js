@@ -10,7 +10,8 @@
 * trigger event with return value like callback => iscroll:start ; iscroll:move ; iscroll:stop ; iscroll:mouseenter ; iscroll:mouseleave
 * trigger event for return a message to display : iscroll:message
 *
-* @params {object}
+* @params:
+* . {object}
 * .	. . axis
 *			{STRING} [x | y]
 *			vertical or horizontal scrollbar? actually only "y".
@@ -26,16 +27,21 @@
 * .	. . selector
 *			{STRING}
 *			selector for the list of items loaded and used by message and callback (scrollrate)
-* .	. . callback
-*			{FUNCTION}
-*			function called on scroll move
-*			this = DOM element of the box
-* .	. . . . type
-*				{STRING} [start | move | stop]
-* . . . . . scroll
+* . . . template
+*			{HTML STRING}
+*			If you want to use a custom template with your scrollbar css
+*
+* @trigger event :
+* . iscroll:start
+* . iscroll:move
+* . iscroll:stop
+* . iscroll:mouseenter
+* . iscroll:mouseleave
+*		{event}
+* . . . . . scrollpercent
 *				{FLOAT} [0,1]
 *				related scrolling
-* . . . . . view
+* . . . . . viewpercent
 *				{FLOAT} [0,1]
 *				related client height size
 * . . . . . axis
@@ -50,21 +56,22 @@
 *				{event object}
 * .	. . . . deltaY
 *				{INT} [-1, 1]
-*				direction of the move (when move event)
+*				direction of the movement
 * .	. . . . deltaX
 *				{INT} [-1, 1]
-*				direction of the move (when move event)
-* .	. . message
-*			{FUNCTION}
-*			function called for display message on the scroll bar
-*			this = DOM element of the message content
-* . . . . . scroll
-*				{FLOAT} [0,1]
-*				related scrolling
+*				direction of the movement
+* .	. . . . DOM
+*				{OBJECT}
+*				DOM element of the box
+* . iscroll:message
+*		The function must return the message to display, if false don't display the popup on the scrollbar.
+*		{event}
+* . . . . . scrollpercent
+* . . . . . viewpercent
+* . . . . . axis
 * . . . . . datas
-*				{ARRAY}
-*				list of item loaded by selector with a scrollrate attribute
-*				(center client = 0, border top = -1, border bottom = 1)
+* . . . . . srcEvent
+* .	. . . . DOM
 */
 $.fn.iScroll = function (options, callback) {
 	
@@ -80,26 +87,8 @@ $.fn.iScroll = function (options, callback) {
 		,   pagedown    : false
 		,   selector    : false
 		,   invertscroll: false
-		,	callback	: function () {}
-	}, options );
-	
-	this.each( function(){
-		(function (el, options) {
-			switch (el.tagName.toLowerCase()) {
-				case 'select':
-				case 'textarea':
-				case 'input':
-					throw new TypeError("Invalid type :"+el.tagName+".");
-					return false;
-			}
-			
-			var $el = $(el);
-			if ($el.find('.iscroll-y').size()) {
-				return false;
-			}
-			
-			var scrollY = $(
-				'<div class="iscroll iscroll-y" data-axis="y">'+
+		,	template	: 
+				'<div class="iscroll">'+
 					'<div class="iscroll-box">'+
 						'<div class="iscroll-popup">'+
 							'<div class="iscroll-popup-box">'+
@@ -116,7 +105,26 @@ $.fn.iScroll = function (options, callback) {
 						'</div>'+
 						'<span class="iscroll-arrow-last">A</span>'+
 					'</div>'+
-				'</div>');
+				'</div>'
+	}, options );
+	
+	this.each( function(){
+		(function (el, options) {
+			switch (el.tagName.toLowerCase()) {
+				case 'select':
+				case 'textarea':
+				case 'input':
+					throw new TypeError("Invalid type :"+el.tagName+".");
+					return false;
+			}
+			
+			var $el = $(el);
+			if ($el.find('.iscroll-y').size()) {
+				$el.find('.iscroll-y').remove();
+			}
+			
+			var scrollY = $(options.template);
+			scrollY.addClass('iscroll-y').attr('data-axis', 'y');
 			var scrollBox = scrollY.find('.iscroll-box');
 			var scrollOverflowY = scrollBox.find('.iscroll-overflow');
 			var scrollBarY = scrollBox.find('.iscroll-overflow-bar');
@@ -214,21 +222,16 @@ $.fn.iScroll = function (options, callback) {
 					viewpercent: el.clientHeight/size.box.h, 
 					axis: Event.axis,
 					datas: data || datasSelected,
-					srcEvent: event
+					srcEvent: event,
+					DOM: el,
+					deltaY: event && event.deltaY ? (event.deltaY > 0 ? 1 : -1) : 0,
+					deltaX: event && event.deltaX ? (event.deltaX > 0 ? 1 : -1) : 0
 				};
 				
 				for(var e in events) {
 					if (makeE[e] || events[e] == type) {
 						data.type = events[e];
-						if (e==1) {
-							data.deltaY= event && event.deltaY ? (event.deltaY > 0 ? 1 : -1) : 0,
-							data.deltaX= event && event.deltaX ? (event.deltaX > 0 ? 1 : -1) : 0
-						} else {
-							delete data.deltaY;
-							delete data.deltaX;
-						}
 						trigger(events[e], data);
-						options.callback.apply(el, [data]);
 					}
 				}
 				
@@ -264,8 +267,8 @@ $.fn.iScroll = function (options, callback) {
 			}
 			
 			function on_popup(e, data) {
-				// get if the are a bind event for message or a callback message
-				if (!hasBindEvent('message') && !options.message && !tpopup) {
+				// get if the event for message are is bound
+				if (!hasBindEvent('message')) {
 					return false;
 				}
 				
@@ -274,30 +277,27 @@ $.fn.iScroll = function (options, callback) {
 
 					var top = e.clientY - scrollBox.position().top - scrollY.position().top - size.arrow.h;
 					
-					var span = popupY.find('span:first');
 					var scroll = top / (scrollBox.height() - size.arrow.h*2);
 					
 					var datas = data && data.datas || datasSelected;
+					
+					var span = popupY.find('span:first');
 					
 					var data = {
 						scrollpercent: scroll,
 						viewpercent: el.clientHeight/size.box.h, 
 						axis: Event.axis,
 						datas: datas,
-						srcEvent: e
+						srcEvent: e,
+						DOM: el
 					};
 					
-					if (hasBindEvent('message')) {
-						var message = trigger('message', data);
-					} else if (options.message) {
-						var message = options.message.apply(span, [data]);
-					}
+					var message = trigger('message', data);
 					
 					if (message && message.length) {
 						popupY.show().css('top', '+'+top+'px');
 						span.html( message );
 					} else {
-						console.log("off");
 						off_popup();
 					}
 				}
