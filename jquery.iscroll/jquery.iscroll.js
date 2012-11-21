@@ -421,9 +421,10 @@ $.fn.iScroll = function (options, callback) {
 			function goTo(e) {
 				if (e.which != 1) return;
 				e.deltaY = e.pageY - scrollBarY.position().top;
-				var top = e.offsetY - size.bar.h/2;
+				var top = (e.offsetY || e.originalEvent.layerY || window.event.offsetY || window.event.layerY) - size.bar.h/2;
 				
 				var ratio = moveBarY(top);
+				
 				gotoscrollBox( ratio * size.box.h , e);
 				Event.axis = getAxis(e);
 				callback('goto', e);
@@ -431,10 +432,13 @@ $.fn.iScroll = function (options, callback) {
 			}
 			function resize(e) {
 				if ($el.height() != scrollBox.height()) {
-					init();
+					resizeScroll(e);
+					resetBarPosition(e);
+					resetScrollPosition(e);
 					callback('resize', e);
-				} else if(e && e.type == 'DOMNodeInserted' && !$(e.srcElement).parents('.iscroll').size()) {
-					reloadDatas();
+				} else if(e && e.type == 'DOMNodeInserted' && !$(e.relatedNode).parents('.iscroll').size()) {
+					console.log(e);
+					reloadDatas(e);
 				}
 			}
 			
@@ -530,15 +534,15 @@ $.fn.iScroll = function (options, callback) {
 				
 				$el.parent().resize(resize);
 				$el.bind('resize DOMNodeInserted', resize);
-				window.setInterval(resize, 250);
+				window.setTimeout(resize, 250);
 				$el.bind('iscroll:reload', init);
 				
 				scrollBox.bind('selectstart', function(e){e.stopPropagation();return false});
 				scrollBox.bind('selectstart', '*', function(e){e.stopPropagation();return false});
 			}
 			function init(e) {
+				reloadDatas(e);
 				resizeScroll(e);
-				reloadDatas();
 				resetBarPosition(e);
 				resetScrollPosition(e);
 			}
