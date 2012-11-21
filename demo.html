@@ -8,16 +8,16 @@
 	<script>
 		$(document).ready(function(){
 			var html = '';
-			var rand = 10000 + Math.random();
+			var rand = 1000 + Math.random() * 1000;
 			var h1 = 0;
 			var h2 = 0;
 			for (var i=0; i<rand; i++) {
-				if (i%500==0) {
+				if (i%19==0) {
 					h1++;
 					h2 = 0;
 					html += '<h1>titre: '+(h1)+'</h1>';
 				}
-				if (i%100==0) { 
+				if (i%7==0) { 
 					h2++;
 					html += '<h2>sous-titre: '+h1+'.'+(h2)+'</h2>';
 				}
@@ -30,12 +30,12 @@
 			var h1 = 0;
 			var h2 = 0;
 			for (var i=0; i<rand; i++) {
-				if (i%100==0) {
+				if (i%43==0) {
 					h1++;
 					h2 = 0;
 					html += '<h1>titre: '+(h1)+'</h1>';
 				}
-				if (i%10==0) { 
+				if (i%9==0) { 
 					h2++;
 					html += '<h2>sous-titre: '+h1+'.'+(h2)+'</h2>';
 				}
@@ -55,27 +55,36 @@
 					if(event.datas[0]) {
 						var h1 = false,
 							h2 = false;
-							percent = event.scrollpercent + event.viewpercent,
-							k = Math.floor(event.datas.length/2), 
-							dk = Math.floor(k/2);
+							percent = event.scrollpercent,
+							k = event.datas.length/2, 
+							dk = k/2;
 						
 						while(k > 0 && dk > 0) {
-							if (event.datas[k].scrollpercent <= percent) {
+							if (event.datas[Math.floor(k)].scrollpercent < percent) {
 								k += dk;
-							} else if (event.datas[k].scrollpercent > percent) {
+							} else if (event.datas[Math.floor(k)].scrollpercent > percent) {
 								k -= dk;
-							}
-							if (dk <= 1) {
+							} else {
 								break;
 							}
-							dk = Math.ceil(dk/2);
+							if (dk <= 0.5) {
+								k = Math.ceil(k);
+								break;
+							}
+							dk = dk/2;
+						}
+						while (k && (!event.datas[k] || event.datas[k].scrollpercent > percent)) {
+							k--;
 						}
 						
-						for (k--; k >= 0 && !(h1 && h2); k--) {
-							if (event.datas[k].DOM.nodeName=='H1')
-								h1 = event.datas[k];
-							else 
+						for (var k = k; k >= 0 && !(h1 && h2); k--) {
+							if (event.datas[k].DOM.nodeName=='H1') {
+								if (!h1) h1 = event.datas[k];
+							}
+							else if (!h2 && (!h1 || h1.scrollpercent < event.datas[k].scrollpercent))
 								h2 = event.datas[k];
+							else if (h1 && h1.scrollpercent >= event.datas[k].scrollpercent)
+								break;
 						}
 						
 						return (h1 ? h1.DOM.innerHTML : '') + '<br/>' + (h2 ? h2.DOM.innerHTML : '.');
