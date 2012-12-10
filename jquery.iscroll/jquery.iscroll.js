@@ -553,8 +553,9 @@ var i = {
 		}
 	},
 	gotoScroll: function (self, y) {
-		self[0].scrollTop = parseInt(y) < self[2].size.scrollMaxY ? y : self[2].size.scrollMaxY;
-		$.fn.iScroll.resetBarPosition(self);
+		var scrollTop = parseInt(y < self[2].size.scrollMaxY ? y : self[2].size.scrollMaxY);
+		self[1].$iscrollbox.css('top', scrollTop+'px');
+		self[0].scrollTop = scrollTop;
 	},
 	resetBarPosition: function (self) {
 		self[1].$iscrollbox.css('top', self[0].scrollTop+'px');
