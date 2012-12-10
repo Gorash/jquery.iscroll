@@ -7,9 +7,8 @@
 */
 (function(window,$) {
 /* intelligent scrolling
-* trigger event with return value like callback => iscroll:start ; iscroll:move ; iscroll:stop ; iscroll:mouseenter ; iscroll:mouseleave
 *
-* @self[1]:
+* Options:
 * . {object}
 * .	. . axis
 *			{STRING} [x | y]
@@ -30,22 +29,47 @@
 *			{HTML STRING}
 *			If you want to use a custom template with your scrollbar css
 * . . . message
+*			{FUNCTION}
 *			The function must return the message to display, if false don't display the popup on the scrollbar.
-*			{event}
-* 				scrollpercent
-* 				viewpercent
-* 				axis
-* 				datas
-* 				srcself[2].event
-* 				DOM
+*			Receive @params
+* . . . start
+*			{FUNCTION}
+*			callback function
+*			Receive @params
+* . . . move
+*			{FUNCTION}
+*			callback function
+*			Receive @params
+* . . . stop
+*			{FUNCTION}
+*			callback function
+*			Receive @params
+* . . . callback
+*			{FUNCTION}
+*			callback function for all event : start, move, stop
+*			Receive @params
 *
-* @trigger event :
-* . iscroll:start
-* . iscroll:move
-* . iscroll:stop
-* . iscroll:mouseenter
-* . iscroll:mouseleave
-*		{event}
+*	@params
+* . . . . . $el
+*				{OBJECT jQuery}
+*				initial box
+* . . . . . $iscroll 
+*				{OBJECT jQuery}
+*				iscroll content
+* . . . . . $iscrollbox 
+*				{OBJECT jQuery}
+* . . . . . $iscrolloverflow 
+*				{OBJECT jQuery}
+* . . . . . $iscrollbar 
+*				{OBJECT jQuery}
+* . . . . . $iscrollpopup 
+*				{OBJECT jQuery}
+* . . . . . $iscrollcache 
+*				{OBJECT jQuery}
+* . . . . . $iscrollarrowfirst
+*				{OBJECT jQuery}
+* . . . . . $iscrollarrowlast
+*				{OBJECT jQuery}
 * . . . . . scrollpercent
 *				{FLOAT} [0,1]
 *				related scrolling
@@ -58,19 +82,18 @@
 * . . . . . datas
 *				{ARRAY}
 *				list of item loaded by selector with a scrolltoppercent js attribute
-* .	. . . . srcself[2].event
+* .	. . . . event
 *				{OBJECT}
 *				return the source event object (mousedown, click, resize...)
 *				{event object}
+* .	. . . . type
+				{STRING}
 * .	. . . . deltaY
 *				{INT} [-1, 1]
 *				direction of the movement
 * .	. . . . deltaX
 *				{INT} [-1, 1]
 *				direction of the movement
-* .	. . . . DOM
-*				{OBJECT}
-*				DOM element of the box
 */
 $.fn.iScroll = function (options) {
 	
@@ -175,8 +198,7 @@ var i = {
 			start: 			options.start,
 			move: 			options.move,
 			stop: 			options.stop,
-			mouseenter: 	options.mouseenter,
-			mouseleave: 	options.mouseleave,
+			callback: 		options.callback,
 		};
 		
 		$.fn.iScroll.resizeBar(self);
@@ -252,7 +274,7 @@ var i = {
 		$.fn.iScroll.callback(self, 'resize');
 	},
 	callback : function (self, type) {
-		var events = ['start', 'move', 'stop', 'mouseenter', 'mousemove', 'mouseleave'];
+		var events = ['start', 'move', 'stop'];
 		var makeE = [];
 		
 		if (type == 'scroll') {
@@ -271,10 +293,6 @@ var i = {
 			makeE[2] = true;
 		}
 		
-		if(makeE[1]) {
-			makeE[4] = true;
-		}
-		
 		self[1] = $.extend(self[1], {
 			scrollpercent: 		self[0].scrollTop/self[2].size.scrollMaxY,
 			viewpercent: 		self[0].clientHeight/self[2].size.scrollMaxY,
@@ -286,23 +304,14 @@ var i = {
 		for(var e in events) {
 			if (makeE[e] || events[e] == type) {
 				self[1].type = events[e];
-				$.fn.iScroll.trigger(self);
-				
 				if (self[2][self[1].type]) {
-					self[2][self[1].type].apply(self[0], [self[1]]);
+					self[2][self[1].type](self[0], [self[1]]);
+				}
+				if (self[2].callback) {
+					self[2].callback.apply(self[0], [self[1]]);
 				}
 			}
 		}
-	},
-	trigger : function (self) {
-		var e = $.Event('iscroll:'+self[1].type);
-		for (var k in self[1]) {
-			if (k != 'type') {
-				$.event.props.push(k);
-				e[k] = self[1][k];
-			}
-		}
-		self[1].$el.trigger(e, [self[1]]);
 	},
 	getAxis : function (self) {
 		return self[1].event.currentTarget.getAttribute('data-axis') || 
@@ -373,12 +382,6 @@ var i = {
 				height: '100%'
 			});
 		}
-	},
-	eventMouseenter : function (self) {
-		$.fn.iScroll.callback(self, 'mouseenter');
-	},
-	eventMouseleave : function (self) {
-		$.fn.iScroll.callback(self, 'mouseleave');
 	},
 	eventMousedown : function (self) {
 		if (self[1].event.target == self[0] || $.contains(self[0], self[1].event.target)) {
@@ -584,9 +587,8 @@ var i = {
 		self[1].$iscrolloverflow
 			.bind( 'mousedown', function (event) {dispatch(self, 'eventGoTo', event)} )
 			.bind( 'mousemove', function (event) {dispatch(self, 'eventDrag', event)} )
-			.bind( 'mouseenter', function (event) {dispatch(self, 'eventMouseenter', event)} )
-			.bind( 'mouseleave', function (event) {dispatch(self, 'eventMouseleave', event); dispatch(self, 'off_popup', event);} )
-			.bind( 'mouseup', function (event) {dispatch(self, 'eventStop', event)} );
+			.bind( 'mouseup', function (event) {dispatch(self, 'eventStop', event)} )
+			.bind( 'mouseleave', function (event) { dispatch(self, 'off_popup', event);} );
 		
 		$(window)
 			.bind( 'mousedown', function (event) {dispatch(self, 'eventMousedown', event)} )

@@ -86,21 +86,16 @@
 						
 						return (h1 ? h1[0].innerHTML : '') + '<br/>' + (h2 ? h2[0].innerHTML : '.');
 					}
+				},
+				callback: function (params) {
+					if (params.$el.hasClass("demo1")) {
+						$(".disp1").html(params.type +' '+ params.deltaY + ' => ' + params.scrollpercent);
+					} else {
+						$(".disp2").html(params.type +' '+ params.deltaY + ' => ' + params.scrollpercent);
+					}
 				}
 			});
 			
-			$(".demo1").append('<span class="truc"></span>');
-			$(".demo1 .truc").css('display', 'block');
-			$(".demo1").append('<span class="truc2"></span>');
-			
-			$(".demo1")
-				.bind('iscroll:start iscroll:move iscroll:stop', function (event) {
-					$(".disp1").html(event.type +' '+ event.deltaY + ' => ' + event.scrollpercent);
-				});
-			$(".demo2")
-				.bind('iscroll:start iscroll:move iscroll:stop', function (event) {
-					$(".disp2").html(event.type +' '+ event.deltaY + ' => ' + event.scrollpercent);
-				})
 		});
 	</script>
 	<style>
