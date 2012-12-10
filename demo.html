@@ -42,27 +42,24 @@
 				html += '<p>text<p>';
 			}
 			$(".demo2").html(html);
+		});
 			
 			
-			
-			
-			$(".demo")
-				.iScroll({
-					selector: 'h1,h2'
-				})
-				.bind('iscroll:message', function (event) {
-					
-					if(event.datas[0]) {
+		$(document).ready(function(){
+			$(".demo").iScroll({
+				selector: 'h1,h2',
+				message: function (params) {
+					if(params.datas[0]) {
 						var h1 = false,
 							h2 = false;
-							percent = event.scrollpercent,
-							k = event.datas.length/2, 
+							percent = params.scrollpercent,
+							k = params.datas.length/2, 
 							dk = k/2;
 						
 						while(k > 0 && dk > 0) {
-							if (event.datas[Math.floor(k)].scrollpercent < percent) {
+							if (params.datas[Math.floor(k)][1] < percent) {
 								k += dk;
-							} else if (event.datas[Math.floor(k)].scrollpercent > percent) {
+							} else if (params.datas[Math.floor(k)][1] > percent) {
 								k -= dk;
 							} else {
 								break;
@@ -73,23 +70,24 @@
 							}
 							dk = dk/2;
 						}
-						while (k && (!event.datas[k] || event.datas[k].scrollpercent > percent)) {
+						while (k && (!params.datas[k] || params.datas[k][1] > percent)) {
 							k--;
 						}
 						
 						for (var k = k; k >= 0 && !(h1 && h2); k--) {
-							if (event.datas[k].DOM.nodeName=='H1') {
-								if (!h1) h1 = event.datas[k];
+							if (params.datas[k][0].nodeName=='H1') {
+								if (!h1) h1 = params.datas[k];
 							}
-							else if (!h2 && (!h1 || h1.scrollpercent < event.datas[k].scrollpercent))
-								h2 = event.datas[k];
-							else if (h1 && h1.scrollpercent >= event.datas[k].scrollpercent)
+							else if (!h2 && (!h1 || h1[1] < params.datas[k][1]))
+								h2 = params.datas[k];
+							else if (h1 && h1[1] >= params.datas[k][1])
 								break;
 						}
 						
-						return (h1 ? h1.DOM.innerHTML : '') + '<br/>' + (h2 ? h2.DOM.innerHTML : '.');
+						return (h1 ? h1[0].innerHTML : '') + '<br/>' + (h2 ? h2[0].innerHTML : '.');
 					}
-				});
+				}
+			});
 			
 			$(".demo1").append('<span class="truc"></span>');
 			$(".demo1 .truc").css('display', 'block');
@@ -97,11 +95,11 @@
 			
 			$(".demo1")
 				.bind('iscroll:start iscroll:move iscroll:stop', function (event) {
-					$(".disp1").html(event.type +' '+ event.deltaY);
+					$(".disp1").html(event.type +' '+ event.deltaY + ' => ' + event.scrollpercent);
 				});
 			$(".demo2")
 				.bind('iscroll:start iscroll:move iscroll:stop', function (event) {
-					$(".disp2").html(event.type +' '+ event.deltaY);
+					$(".disp2").html(event.type +' '+ event.deltaY + ' => ' + event.scrollpercent);
 				})
 		});
 	</script>
