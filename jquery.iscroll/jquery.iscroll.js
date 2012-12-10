@@ -339,11 +339,7 @@ var i = {
 		});
 	},
 	on_popup : function (self, axis) {
-		if (!self[2].message) {
-			return false;
-		}
-		
-		if (self[1].axis == 'y') {
+		if (self[2].message && self[1].axis == 'y') {
 
 			var top = self[1].event.clientY - self[1].$iscrollbox.position().top - self[1].$iscroll.position().top - self[2].size.arrowHeight;
 			
@@ -481,7 +477,6 @@ var i = {
 			self[2].event.now.y = self[1].event.pageY;
 			var ratio = $.fn.iScroll.moveBarY(self, self[1].event.pageY - self[2].event.start.y + self[2].event.pos.y);
 			$.fn.iScroll.gotoScroll(self, ratio * self[2].size.scrollMaxY);
-			$.fn.iScroll.cache(self);
 			$.fn.iScroll.callback(self, 'move');
 			$.fn.iScroll.on_popup(self);
 		} else {
